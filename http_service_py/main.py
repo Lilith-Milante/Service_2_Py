@@ -1,5 +1,3 @@
-import file
-import sql
 from flask import Flask, request, jsonify
 import subprocess
 import tempfile
@@ -43,6 +41,3 @@ def query_csv():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-print("SQL:", sql)
-print("Uploaded file:", file.filename)
