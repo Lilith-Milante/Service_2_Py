@@ -1,3 +1,5 @@
+import file
+import sql
 from flask import Flask, request, jsonify
 import subprocess
 import tempfile
@@ -17,13 +19,10 @@ def query_csv():
         return jsonify({"error": "Missing file or SQL query"}), 400
 
     try:
-        # Сохраняем файл во временную директорию
+        # создаём временную директорию
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = os.path.join(tmpdir, file.filename)
             file.save(filepath)
-
-            # Подменяем имя файла в SQL-запросе, если нужно
-            # Пример: SELECT * FROM data.csv -> SELECT * FROM employees.csv
 
             result = subprocess.run(
                 ["q", "-H", "--csv", sql],
@@ -44,3 +43,6 @@ def query_csv():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+print("SQL:", sql)
+print("Uploaded file:", file.filename)
