@@ -12,4 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 3000
 
-CMD ["gunicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"]
+ENV FLASK_APP=main.py
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_RUN_PORT=3000
+
+CMD ["flask", "run"]
+
+#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"]

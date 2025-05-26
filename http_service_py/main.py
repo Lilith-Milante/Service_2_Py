@@ -1,8 +1,6 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, app
+from io import StringIO
 import subprocess
-import tempfile
-import os
-import csv
 
 PORT = 3000
 
@@ -10,34 +8,33 @@ app = Flask(__name__)
 
 @app.route("/query", methods=["POST"])
 def query_csv():
-    file = request.files.get("file")
-    sql = request.form.get("sql")
+    # Получаем CSV как текст из form-data
+    csv_data = request.form.get('csv-text')
+    if not csv_data:
+        return jsonify({"error": "Missing CSV data"}), 400
 
-    if not file or not sql:
-        return jsonify({"error": "Missing file or SQL query"}), 400
+    # Получаем SQL-запрос из form-data
+    sql_query = request.form.get('sql')
+    if not sql_query:
+        return jsonify({"error": "Missing SQL query"}), 400
 
     try:
-        # создаём временную директорию
-        with tempfile.TemporaryDirectory() as tmpdir:
-            filepath = os.path.join(tmpdir, file.filename)
-            file.save(filepath)
+        # Запускаем q через subprocess, передаём SQL-запрос и CSV через stdin
+        result = subprocess.run(
+            ['q', '-H', '--delimiter', ',',
+             f'{sql_query}'],
+            input=csv_data.encode('utf-8'),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
-            result = subprocess.run(
-                ["q", "-H", "--csv", sql],
-                cwd=tmpdir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
+        if result.returncode != 0:
+            return jsonify({"error": result.stderr.decode('utf-8')}), 400
 
-            if result.returncode != 0:
-                return jsonify({"error": result.stderr.strip()}), 400
-
-            # Преобразуем CSV-ответ в список списков
-            reader = csv.reader(result.stdout.strip().splitlines())
-            data = [row for row in reader]
-
-            return jsonify({"result": data})
-
+        output = result.stdout.decode('utf-8')
+        return jsonify({"result": output})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
